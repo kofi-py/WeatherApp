@@ -7,6 +7,7 @@ import {
   Button,
   Alert,
   ActivityIndicator,
+  Text,
 } from "react-native";
 import axios from "axios";
 import WeatherCard from "./components/WeatherCard";
@@ -21,6 +22,7 @@ export default function App() {
   const [weather, setWeather] = useState(null);
   const [locationInput, setLocationInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Lato_400Regular,
@@ -32,30 +34,35 @@ export default function App() {
     }
   }, [fontsLoaded]);
 
-  useEffect(() => {
-    fetchWeatherData("New York");
-  }, []);
-
   const fetchWeatherData = async (location) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await axios.get(
-        `https://api.weatherapi.com/v1/current.json?key=46cc74cfb474cdee46259cd9ff1861b1&q=${location}`
+        `https://api.weatherapi.com/v1/current.json?key=ce862c3fba774039958125829242406fa&q=${location}`
       );
       setWeather(response.data);
-      setLoading(false);
     } catch (error) {
+      if (error.response) {
+        console.error("Error response:", error.response);
+        setError(
+          "Failed to fetch weather data. Please check the location and try again."
+        );
+      } else if (error.request) {
+        console.error("Error request:", error.request);
+        setError("No response from the server. Please try again later.");
+      } else {
+        console.error("Error message:", error.message);
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
       setLoading(false);
-      Alert.alert(
-        "Error",
-        "Failed to fetch weather data. Please check the location and try again."
-      );
     }
   };
 
   const handleLocationSubmit = () => {
     if (locationInput.trim()) {
-      fetchWeatherData(locationInput);
+      fetchWeatherData(locationInput.trim());
       setLocationInput("");
     } else {
       Alert.alert(
@@ -80,7 +87,8 @@ export default function App() {
         />
         <Button title="Get Weather" onPress={handleLocationSubmit} />
         {loading && <ActivityIndicator size="large" color="#0000ff" />}
-        {weather && !loading && <WeatherCard weather={weather} />}
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        {weather && !loading && !error && <WeatherCard weather={weather} />}
       </View>
     </WeatherBackground>
   );
@@ -103,5 +111,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontFamily: "Lato_400Regular",
     fontSize: 16,
+  },
+  errorText: {
+    color: "red",
+    fontFamily: "Lato_400Regular",
+    fontSize: 16,
+    marginVertical: 10,
   },
 });
